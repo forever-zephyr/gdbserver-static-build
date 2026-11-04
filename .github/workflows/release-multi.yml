@@ -1,0 +1,123 @@
+name: Release multiarch GDB and GDBserver
+
+on:
+  push:
+    tags:
+      - 'multi-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  gdbserver:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        version: ['9.2', '13.2', '18.1']
+        arch: [i386, x86_64, armv7, aarch64, mips, mipsel, mips64, mips64el]
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Select target triple
+        id: target
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          case "$ARCH" in
+            i386) triple=i686-linux-gnu ;;
+            x86_64) triple=x86_64-linux-gnu ;;
+            armv7) triple=arm-linux-gnueabihf ;;
+            aarch64) triple=aarch64-linux-gnu ;;
+            mips) triple=mips-linux-gnu ;;
+            mipsel) triple=mipsel-linux-gnu ;;
+            mips64) triple=mips64-linux-gnuabi64 ;;
+            mips64el) triple=mips64el-linux-gnuabi64 ;;
+          esac
+          echo "triple=$triple" >> "$GITHUB_OUTPUT"
+      - name: Build static GDBserver
+        env:
+          GDB_VERSION: ${{ matrix.version }}
+          TARGET_ARCH: ${{ matrix.arch }}
+          TARGET_TRIPLE: ${{ steps.target.outputs.triple }}
+        run: |
+          docker build --pull -f Dockerfile.multi \
+            --build-arg TARGET_TRIPLE="$TARGET_TRIPLE" \
+            -t gdbserver-multi-builder .
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e GDB_VERSION -e TARGET_ARCH -e TARGET_TRIPLE \
+            -v "$PWD:/workspace" gdbserver-multi-builder
+          docker image inspect gdbserver-multi-builder \
+            --format 'Builder image ID: {{.Id}}' \
+            >> "dist/$GDB_VERSION/$TARGET_ARCH/gdbserver-$GDB_VERSION-linux-$TARGET_ARCH-static.buildinfo.txt"
+      - name: Attest binary provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: dist/${{ matrix.version }}/${{ matrix.arch }}/gdbserver-${{ matrix.version }}-linux-${{ matrix.arch }}-static
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gdbserver-${{ matrix.version }}-${{ matrix.arch }}
+          path: dist/${{ matrix.version }}/${{ matrix.arch }}/*
+
+  host-gdb:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['9.2', '13.2', '18.1']
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Build multi-target GDB
+        env:
+          GDB_VERSION: ${{ matrix.version }}
+        run: |
+          docker build --pull -f Dockerfile.gdb -t gdb-host-builder .
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e GDB_VERSION -v "$PWD:/workspace" gdb-host-builder
+          docker image inspect gdb-host-builder \
+            --format 'Builder image ID: {{.Id}}' \
+            >> "dist/$GDB_VERSION/host/gdb-$GDB_VERSION-linux-x86_64.buildinfo.txt"
+      - name: Attest binary provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: dist/${{ matrix.version }}/host/gdb-${{ matrix.version }}-linux-x86_64
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gdb-${{ matrix.version }}-host
+          path: dist/${{ matrix.version }}/host/*
+
+  release:
+    needs: [gdbserver, host-gdb]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: 'gdb*'
+          merge-multiple: true
+          path: release
+      - name: Verify matrix and package release
+        run: scripts/assemble-multi-release.sh "$PWD/release"
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* \
+            --title "Multiarch GDB and GDBserver" \
+            --notes-file RELEASE_NOTES_MULTI.md
+
