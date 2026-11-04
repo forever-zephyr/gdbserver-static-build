@@ -20,6 +20,7 @@ jobs:
         run: |
           docker build --pull --platform linux/386 -t gdbserver-static-builder .
           docker run --rm --platform linux/386 \
+            --user "$(id -u):$(id -g)" \
             -v "$PWD:/workspace" gdbserver-static-builder
       - name: Record container image
         run: |

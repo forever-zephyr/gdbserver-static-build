@@ -39,6 +39,7 @@ install -m 0644 "$build_dir/gdb-9.2.tar.xz" "$output_dir/gdb-9.2.tar.xz"
 {
   printf 'Source: %s\n' "$source_url"
   printf 'Source SHA-256: %s\n' "$source_sha256"
+  printf 'Patch SHA-256: %s\n' "$(sha256sum /workspace/patches/gdb-9.2-gnulib-header-order.patch | cut -d' ' -f1)"
   printf 'Compiler: %s\n' "$(gcc --version | head -n 1)"
   printf 'Architecture: %s\n' "$(gcc -dumpmachine)"
   printf 'Linking: static\n'
