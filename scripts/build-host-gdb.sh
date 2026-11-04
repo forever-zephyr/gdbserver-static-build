@@ -23,6 +23,9 @@ source_dir="$build_dir/gdb-$GDB_VERSION"
 if [[ "$GDB_VERSION" == 9.2 ]]; then
   patch -d "$source_dir" -p1 \
     < /workspace/patches/gdb-9.2-gnulib-header-order.patch
+  readline_option='--without-system-readline'
+else
+  readline_option='--with-system-readline'
 fi
 
 mkdir "$build_dir/build"
@@ -30,7 +33,7 @@ cd "$build_dir/build"
 "$source_dir/configure" \
   --enable-targets=all --disable-binutils --disable-ld --disable-gold \
   --disable-gas --disable-sim --disable-gprof --disable-gdbserver \
-  --disable-werror --disable-nls --with-system-readline \
+  --disable-werror --disable-nls "$readline_option" \
   --with-python=/usr/bin/python3 --without-guile --without-babeltrace
 make -j 2 all-gdb
 
