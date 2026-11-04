@@ -18,7 +18,8 @@ then runs every target GDBserver under its native CPU or QEMU user emulation.
 Each binary gets a build information file and a GitHub provenance attestation.
 The tag-triggered release job verifies that the entire matrix is present,
 downloads the exact official source archives, and publishes a release-wide
-`SHA256SUMS`. Push a `multi-v*` tag to run the complete release matrix.
+`SHA256SUMS`. Run the workflow manually to validate the entire matrix without
+publishing, then push a `multi-v*` tag to build and publish a Release.
 
 For a focused test before tagging, run `build-multi.yml` manually with a
 product, version, and architecture selection. Source hashes are pinned in

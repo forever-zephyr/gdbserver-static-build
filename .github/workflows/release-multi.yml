@@ -1,6 +1,7 @@
 name: Release multiarch GDB and GDBserver
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'multi-v*'
@@ -114,6 +115,7 @@ jobs:
       - name: Verify matrix and package release
         run: scripts/assemble-multi-release.sh "$PWD/release"
       - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/multi-v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
