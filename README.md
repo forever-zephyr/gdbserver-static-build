@@ -8,9 +8,10 @@ absence of a dynamic interpreter, and publishes the binary with source,
 checksums, build information, and a GitHub provenance attestation.
 
 Public CI makes the build steps visible, but it is not a guarantee that the
-source, dependencies, runner, or resulting binary are harmless. The Debian
-base image and packages are updated by upstream; `BUILDINFO.txt` records the
-builder image ID for the individual run. Review the workflow and use the
+source, dependencies, runner, or resulting binary are harmless. Bullseye's
+security package index currently references removed files, so this build uses
+its main package repository. The base image and packages can change;
+`BUILDINFO.txt` records the builder image ID for the individual run. Review the workflow and use the
 attestation before running the binary in a sensitive environment.
 
 ## Download and verify
