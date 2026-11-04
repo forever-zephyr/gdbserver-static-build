@@ -39,8 +39,12 @@ if [[ "$GDB_VERSION" == 9.2 ]]; then
   patch -d "$source_dir" -p1 \
     < /workspace/patches/gdb-9.2-gnulib-header-order.patch
   configure_script="$source_dir/gdb/gdbserver/configure"
+  make_target=''
+  output_binary='gdbserver'
 else
-  configure_script="$source_dir/gdbserver/configure"
+  configure_script="$source_dir/configure"
+  make_target='all-gdbserver'
+  output_binary='gdbserver/gdbserver'
 fi
 
 mkdir "$build_dir/build"
@@ -49,11 +53,15 @@ export CC="$TARGET_TRIPLE-gcc" CXX="$TARGET_TRIPLE-g++"
 export AR="$TARGET_TRIPLE-ar" RANLIB="$TARGET_TRIPLE-ranlib"
 export CFLAGS='-O2 -g0' CXXFLAGS='-O2 -g0' LDFLAGS='-static'
 "$configure_script" --host="$TARGET_TRIPLE" --target="$TARGET_TRIPLE" \
-  --disable-werror --disable-inprocess-agent --disable-nls
-make -j 2
+  --disable-werror --disable-inprocess-agent --disable-nls --disable-gdb
+if [[ -n "$make_target" ]]; then
+  make -j 2 "$make_target"
+else
+  make -j 2
+fi
 
 binary="gdbserver-${GDB_VERSION}-linux-${TARGET_ARCH}-static"
-install -m 0755 gdbserver "$output_dir/$binary"
+install -m 0755 "$output_binary" "$output_dir/$binary"
 file "$output_dir/$binary" | grep -q 'statically linked'
 if readelf -l "$output_dir/$binary" | grep -q INTERP; then
   echo 'Unexpected dynamic interpreter in gdbserver' >&2
