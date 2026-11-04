@@ -1,0 +1,75 @@
+name: Build multiarch GDBserver
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: GDB version to build
+        type: choice
+        required: true
+        default: '13.2'
+        options: ['9.2', '13.2', '18.1']
+      arch:
+        description: Target CPU architecture
+        type: choice
+        required: true
+        default: armv7
+        options: [i386, x86_64, armv7, aarch64, mips, mipsel, mips64, mips64el]
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Select target triple
+        id: target
+        env:
+          ARCH: ${{ inputs.arch }}
+        run: |
+          case "$ARCH" in
+            i386) triple=i686-linux-gnu ;;
+            x86_64) triple=x86_64-linux-gnu ;;
+            armv7) triple=arm-linux-gnueabihf ;;
+            aarch64) triple=aarch64-linux-gnu ;;
+            mips) triple=mips-linux-gnu ;;
+            mipsel) triple=mipsel-linux-gnu ;;
+            mips64) triple=mips64-linux-gnuabi64 ;;
+            mips64el) triple=mips64el-linux-gnuabi64 ;;
+          esac
+          echo "triple=$triple" >> "$GITHUB_OUTPUT"
+      - name: Build static GDBserver
+        env:
+          GDB_VERSION: ${{ inputs.version }}
+          TARGET_ARCH: ${{ inputs.arch }}
+          TARGET_TRIPLE: ${{ steps.target.outputs.triple }}
+        run: |
+          docker build --pull -f Dockerfile.multi \
+            --build-arg TARGET_TRIPLE="$TARGET_TRIPLE" \
+            -t gdbserver-multi-builder .
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e GDB_VERSION -e TARGET_ARCH -e TARGET_TRIPLE \
+            -v "$PWD:/workspace" gdbserver-multi-builder
+      - name: Record builder image
+        env:
+          GDB_VERSION: ${{ inputs.version }}
+          TARGET_ARCH: ${{ inputs.arch }}
+        run: |
+          docker image inspect gdbserver-multi-builder \
+            --format 'Builder image ID: {{.Id}}' \
+            >> "dist/$GDB_VERSION/$TARGET_ARCH/gdbserver-$GDB_VERSION-linux-$TARGET_ARCH-static.buildinfo.txt"
+      - name: Attest binary provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: dist/${{ inputs.version }}/${{ inputs.arch }}/gdbserver-${{ inputs.version }}-linux-${{ inputs.arch }}-static
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gdbserver-${{ inputs.version }}-${{ inputs.arch }}
+          path: dist/${{ inputs.version }}/${{ inputs.arch }}/*
+

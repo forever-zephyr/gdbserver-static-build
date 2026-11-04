@@ -1,0 +1,16 @@
+FROM debian:bookworm
+
+ARG TARGET_TRIPLE
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential bison flex texinfo libgmp-dev libmpfr-dev \
+    libexpat1-dev zlib1g-dev curl ca-certificates xz-utils \
+    file binutils patch qemu-user \
+    && if [ "$TARGET_TRIPLE" != x86_64-linux-gnu ]; then \
+         apt-get install -y --no-install-recommends \
+           "gcc-$TARGET_TRIPLE" "g++-$TARGET_TRIPLE" "binutils-$TARGET_TRIPLE"; \
+       fi \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+CMD ["/workspace/scripts/build-multi.sh"]
+
