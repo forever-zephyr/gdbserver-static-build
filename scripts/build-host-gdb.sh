@@ -24,8 +24,10 @@ if [[ "$GDB_VERSION" == 9.2 ]]; then
   patch -d "$source_dir" -p1 \
     < /workspace/patches/gdb-9.2-gnulib-header-order.patch
   readline_option='--without-system-readline'
+  python_option='--without-python'
 else
   readline_option='--with-system-readline'
+  python_option='--with-python=/usr/bin/python3'
 fi
 
 mkdir "$build_dir/build"
@@ -34,16 +36,17 @@ cd "$build_dir/build"
   --enable-targets=all --disable-binutils --disable-ld --disable-gold \
   --disable-gas --disable-sim --disable-gprof --disable-gdbserver \
   --disable-werror --disable-nls "$readline_option" \
-  --with-python=/usr/bin/python3 --without-guile --without-babeltrace
+  "$python_option" --without-guile --without-babeltrace
 make -j 2 all-gdb
 
 binary="gdb-${GDB_VERSION}-linux-x86_64"
 install -m 0755 gdb/gdb "$output_dir/$binary"
 file "$output_dir/$binary" | grep -q 'ELF 64-bit.*x86-64'
-"$output_dir/$binary" -nx -batch \
-  -ex 'show version' \
-  -ex 'python import sys; print("Embedded Python:", sys.version)' \
-  | head -n 8
+gdb_checks=(-ex 'show version')
+if [[ "$GDB_VERSION" != 9.2 ]]; then
+  gdb_checks+=(-ex 'python import sys; print("Embedded Python:", sys.version)')
+fi
+"$output_dir/$binary" -nx -batch "${gdb_checks[@]}" | head -n 8
 
 {
   printf 'Product: gdb\nVersion: %s\n' "$GDB_VERSION"
@@ -51,6 +54,7 @@ file "$output_dir/$binary" | grep -q 'ELF 64-bit.*x86-64'
   printf 'Source: %s\nSource SHA-256: %s\n' "$source_url" "$source_sha256"
   printf 'Compiler: %s\n' "$(gcc --version | head -n 1)"
   printf 'Linking: dynamic (Debian Bookworm glibc)\n'
+  printf 'Python: %s\n' "$python_option"
   ldd "$output_dir/$binary"
   if [[ "$GDB_VERSION" == 9.2 ]]; then
     printf 'Patch SHA-256: %s\n' "$(sha256sum /workspace/patches/gdb-9.2-gnulib-header-order.patch | cut -d' ' -f1)"

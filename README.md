@@ -6,8 +6,10 @@ The new [`release-multi.yml`](.github/workflows/release-multi.yml) workflow
 builds three GDB versions (9.2, 13.2, 18.1). Each version has statically linked
 GDBserver builds for i386, x86_64, ARMv7 hard float, AArch64, MIPS32 big and
 little endian, and MIPS64 big and little endian. Each version also has a
-multi-target x86_64 GDB with Python support for debugging all these targets
-from a Debian Bookworm-compatible analysis machine. The host GDB binaries are
+multi-target x86_64 GDB for debugging all these targets from a Debian
+Bookworm-compatible analysis machine. The 13.2 and 18.1 GDB builds include
+Python; the 9.2 build omits it because GDB 9.2 crashes with Bookworm's Python
+3.11. The host GDB binaries are
 dynamically linked and do not run directly on Ubuntu 20.04; use that system's
 older GDB/Pwndbg or a compatible container there.
 
