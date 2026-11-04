@@ -12,6 +12,8 @@ curl --proto '=https' --tlsv1.2 -fsSL --retry 3 \
   -o "$build_dir/gdb-9.2.tar.xz" "$source_url"
 printf '%s  %s\n' "$source_sha256" "$build_dir/gdb-9.2.tar.xz" | sha256sum -c -
 tar -xf "$build_dir/gdb-9.2.tar.xz" -C "$build_dir"
+patch -d "$build_dir/gdb-9.2" -p1 \
+  < /workspace/patches/gdb-9.2-gnulib-header-order.patch
 mkdir "$build_dir/build"
 cd "$build_dir/build"
 

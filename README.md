@@ -3,15 +3,15 @@
 This repository builds a 32-bit statically linked GDBserver 9.2 from the
 [official GDB release source](https://sourceware.org/pub/gdb/releases/gdb-9.2.tar.xz).
 The source archive is pinned by SHA-256 in `scripts/build.sh`. GitHub Actions
-builds inside a `linux/386` Debian Bullseye container, checks the ELF architecture and
+builds inside a `linux/386` Debian Bookworm container, applies the included
+header-order compatibility patch, checks the ELF architecture and
 absence of a dynamic interpreter, and publishes the binary with source,
 checksums, build information, and a GitHub provenance attestation.
 
 Public CI makes the build steps visible, but it is not a guarantee that the
-source, dependencies, runner, or resulting binary are harmless. Bullseye's
-security package index currently references removed files, so this build uses
-its main package repository. The base image and packages can change;
-`BUILDINFO.txt` records the builder image ID for the individual run. Review the workflow and use the
+source, dependencies, runner, or resulting binary are harmless. The base image
+and packages can change; `BUILDINFO.txt` records the builder image ID for the
+individual run. Review the workflow, the one-line source patch, and use the
 attestation before running the binary in a sensitive environment.
 
 ## Download and verify
