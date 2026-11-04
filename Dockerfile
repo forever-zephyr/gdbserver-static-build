@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM debian:bookworm
+FROM --platform=$TARGETPLATFORM debian:bullseye
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential bison flex texinfo libgmp-dev libmpfr-dev \

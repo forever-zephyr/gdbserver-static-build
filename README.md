@@ -3,7 +3,7 @@
 This repository builds a 32-bit statically linked GDBserver 9.2 from the
 [official GDB release source](https://sourceware.org/pub/gdb/releases/gdb-9.2.tar.xz).
 The source archive is pinned by SHA-256 in `scripts/build.sh`. GitHub Actions
-builds inside a `linux/386` Debian container, checks the ELF architecture and
+builds inside a `linux/386` Debian Bullseye container, checks the ELF architecture and
 absence of a dynamic interpreter, and publishes the binary with source,
 checksums, build information, and a GitHub provenance attestation.
 
