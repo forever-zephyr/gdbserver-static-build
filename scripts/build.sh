@@ -18,7 +18,8 @@ mkdir "$build_dir/build"
 cd "$build_dir/build"
 
 CC=gcc CXX=g++ CFLAGS='-O2 -g0' CXXFLAGS='-O2 -g0' LDFLAGS='-static' \
-  "$build_dir/gdb-9.2/gdb/gdbserver/configure" --disable-werror
+  "$build_dir/gdb-9.2/gdb/gdbserver/configure" \
+    --disable-werror --disable-inprocess-agent
 make -j "$(nproc)"
 
 binary="$output_dir/gdbserver-9.2-linux-i386-static"
